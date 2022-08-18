@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,13 +6,14 @@ public class SlotCollider : MonoBehaviour
     [SerializeField] SlotCollider otherSlot;
     private Vector3 slotPos;
     [SerializeField] bool isEmpty = true;
-    private GameManager gameManager;
     [SerializeField] GameObject[] prefabs;
     [SerializeField] GameObject productSlot;
+    public ProductSlot productSlotScript;
     private int _prefabInd;
+    public static List<GameObject> reactants = new List<GameObject>();
     private void Start()
     {
-        gameManager = FindObjectOfType<GameManager>();
+        productSlotScript = productSlot.GetComponent<ProductSlot>();
         slotPos = transform.position;
     }
     private void OnTriggerEnter(Collider other)
@@ -23,38 +23,39 @@ public class SlotCollider : MonoBehaviour
             other.GetComponent<DragObject>().isPositionOkay = true;
             isEmpty = false;
             other.transform.position = slotPos;
-            gameManager.reactants.Add(other.gameObject);
+            reactants.Add(other.gameObject);
         }
-        if(gameManager.reactants.Count == 2)
+        if (reactants.Count == 2)
         {
-            if(CheckReactants())
+            if (CheckReactants())
             {
                 StartReaction(_prefabInd);
             }
             else
             {
+                GameManager.instance.AddScore(-10);
                 DestroyReactants();
             }
         }
     }
     bool CheckReactants()
     {
-        if (gameManager.reactants[0].CompareTag("Hydrogen") && gameManager.reactants[1].CompareTag("Oxygen"))
+        if (reactants[0].CompareTag("Hydrogen") && reactants[1].CompareTag("Oxygen"))
         {
             _prefabInd = 0;
             return true;
         }
-        else if(gameManager.reactants[0].CompareTag("Oxygen") && gameManager.reactants[1].CompareTag("Hydrogen"))
+        else if (reactants[0].CompareTag("Oxygen") && reactants[1].CompareTag("Hydrogen"))
         {
             _prefabInd = 0;
             return true;
         }
-        else if (gameManager.reactants[0].CompareTag("Na") && gameManager.reactants[1].CompareTag("Cl"))
+        else if (reactants[0].CompareTag("Na") && reactants[1].CompareTag("Cl"))
         {
             _prefabInd = 1;
             return true;
         }
-        else if (gameManager.reactants[0].CompareTag("Cl") && gameManager.reactants[1].CompareTag("Na"))
+        else if (reactants[0].CompareTag("Cl") && reactants[1].CompareTag("Na"))
         {
             _prefabInd = 1;
             return true;
@@ -67,16 +68,32 @@ public class SlotCollider : MonoBehaviour
 
     void StartReaction(int prefabIndex)
     {
-        Instantiate(prefabs[prefabIndex],productSlot.transform.position, prefabs[prefabIndex].transform.rotation);
+        prefabs[prefabIndex].SetActive(true);
         DestroyReactants();
+        FinishOrder(prefabs[prefabIndex]);
     }
 
     void DestroyReactants()
     {
         isEmpty = true;
         otherSlot.isEmpty = true;
-        Destroy(gameManager.reactants[0]);
-        Destroy(gameManager.reactants[1]);
-        gameManager.reactants.Clear();
+        reactants[0].SetActive(false);
+        reactants[1].SetActive(false);
+        reactants.Clear();
     }
+
+    void FinishOrder(GameObject go)
+    {
+        productSlotScript.GetActiveOrders();
+        if (go.CompareTag("Water"))
+        {
+            productSlotScript.FinishWaterOrder();
+        }
+        else
+        {
+            productSlotScript.FinishSaltOrder();
+        }
+        productSlotScript.ClearAll();
+    }
+
 }
